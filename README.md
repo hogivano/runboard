@@ -1,5 +1,9 @@
 # runboard
 
+[![CI](https://github.com/hogivano/runboard/actions/workflows/ci.yml/badge.svg)](https://github.com/hogivano/runboard/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Deno 2](https://img.shields.io/badge/deno-2.x-000?logo=deno)](https://deno.com)
+
 A local web dashboard for multi-agent pipeline runs. It shows each run's stages, lets you read everything the
 agents wrote, and lets you answer an agent that stopped to ask a question.
 

@@ -23,7 +23,7 @@ export interface TestEnv extends AsyncDisposable {
  * launcher, so no test can write into the real Hermes runs dir or start an agent.
  */
 export async function withFixtures(overrides: Partial<Config> = {}): Promise<TestEnv> {
-  const base = await Deno.makeTempDir({ prefix: "hermes-monitoring-test-" });
+  const base = await Deno.makeTempDir({ prefix: "runboard-test-" });
   const runsRoot = join(base, "runs");
   await copy(FIXTURE_RUNS, runsRoot);
 
@@ -87,7 +87,18 @@ export async function withFixtures(overrides: Partial<Config> = {}): Promise<Tes
       return launches;
     },
     async [Symbol.asyncDispose]() {
-      await Deno.remove(base, { recursive: true });
+      // A detached stub launcher can still be appending to its log when a test ends; on
+      // Linux that makes a recursive remove fail with ENOTEMPTY, so retry briefly.
+      for (let attempt = 0;; attempt++) {
+        try {
+          await Deno.remove(base, { recursive: true });
+          return;
+        } catch (error) {
+          if (error instanceof Deno.errors.NotFound) return;
+          if (attempt >= 20) throw error;
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+      }
     },
   };
 }

@@ -183,6 +183,8 @@ Deno.test("POST retry refuses a run that is still active", async () => {
   const handler = createHandler(env.config);
   const response = await handler(post("/api/runs/run-question/retry", { repo: "/tmp/repo" }));
   assertEquals(response.status, 200, "needs_input runs are retryable");
+  // Let the launched stub finish writing before the test tears its directory down.
+  assertEquals((await env.launchedArgs({ expect: 1 })).length, 1);
 
   await Deno.writeTextFile(
     join(env.runsRoot, "run-recorded/state.json"),
