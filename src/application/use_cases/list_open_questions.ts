@@ -13,7 +13,12 @@ export async function listOpenQuestions(context: AppContext): Promise<OpenQuesti
   const questions: OpenQuestion[] = [];
   for (const { stored, summary } of waiting) {
     questions.push(
-      toOpenQuestion(summary, stored.record, await context.runs.hasAnswers(summary.id)),
+      toOpenQuestion(
+        summary,
+        stored.record,
+        await context.runs.hasAnswers(summary.id),
+        context.settings.resume,
+      ),
     );
   }
   return questions;

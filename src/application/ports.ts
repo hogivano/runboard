@@ -48,6 +48,8 @@ export interface RunStore {
   appendAnswer(id: string, entry: AnswerEntry): Promise<{ answersPath: string; feedbackPath: string }>;
   /** Whether a recorded brief path points at an existing file. */
   briefExists(path: string): Promise<boolean>;
+  /** Absolute path of a run's directory, as a runner on this machine names it. */
+  runDirectory(id: string): string;
 }
 
 /** A file found in a run folder: directly in it (`folder` null) or inside a subfolder. */
@@ -95,6 +97,8 @@ export interface WorkspaceScanner {
 export interface LaunchResult {
   pid: number;
   command: string[];
+  /** File the runner's own output goes to, when the launcher keeps one. */
+  log?: string;
 }
 
 /** The pipeline runner's CLI. */
@@ -103,7 +107,10 @@ export interface Launcher {
   readonly configured: boolean;
   /** Throws `LauncherUnavailableError` when the runner cannot be executed. */
   ensureReady(): Promise<void>;
-  /** Starts the runner detached with an argument list, never a shell string. */
+  /**
+   * Starts the runner detached with an argument list, never a shell string. Throws
+   * `LaunchFailedError` when the runner exits with an error straight away.
+   */
   start(args: string[]): Promise<LaunchResult>;
 }
 

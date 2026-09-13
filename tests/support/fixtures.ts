@@ -71,6 +71,7 @@ export async function withFixtures(overrides: Partial<Config> = {}): Promise<Tes
   const config: Config = {
     runsRoot,
     launcher,
+    resume: false,
     launchCwd: base,
     host: "127.0.0.1",
     port: 0,

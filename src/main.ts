@@ -2,7 +2,7 @@
  * Composition root: the one place that knows every concrete adapter. It reads configuration,
  * builds the adapters, hands them to the application as ports, and serves HTTP.
  */
-import { fromFileUrl } from "@std/path";
+import { fromFileUrl, join } from "@std/path";
 import { type Application, createApplication } from "./application/app.ts";
 import { type Config, loadConfig } from "./adapters/config/config.ts";
 import { FsDocumentStore } from "./adapters/filesystem/fs_document_store.ts";
@@ -19,12 +19,18 @@ export function createApp(config: Config): Application {
     runs: new FsRunStore(config.runsRoot),
     documents: new FsDocumentStore(config.runsRoot),
     workspaces: new GitWorkspaceScanner(),
-    launcher: new ShellLauncher(config.launcher, config.launchCwd),
+    // Launch logs sit beside the runs; a dot-folder is never a valid run id, so never listed.
+    launcher: new ShellLauncher(
+      config.launcher,
+      config.launchCwd,
+      join(config.runsRoot, ".runboard", "launches"),
+    ),
     settings: {
       title: config.title,
       sourceLabel: config.sourceLabel,
       staleImportMs: config.staleImportMs,
       stages: config.stages,
+      resume: config.resume,
     },
     now: () => new Date(),
   });
@@ -44,7 +50,10 @@ export function serve(config: Config): Deno.HttpServer {
       onListen: ({ hostname, port }) => {
         console.log(`runboard: http://${hostname}:${port}`);
         console.log(`Runs root: ${config.runsRoot}`);
-        console.log(`Launcher:  ${config.launcher ?? "none (read-only: cannot start runs)"}`);
+        const resume = config.resume ? " (resumes halted runs)" : "";
+        console.log(
+          `Launcher:  ${config.launcher ? config.launcher + resume : "none (read-only: cannot start runs)"}`,
+        );
       },
     },
     createHandler(config),

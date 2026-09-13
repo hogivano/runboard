@@ -68,6 +68,9 @@ export class InMemoryRunStore implements RunStore {
   briefExists(path: string) {
     return Promise.resolve(this.briefs.has(path));
   }
+  runDirectory(id: string) {
+    return `/runs/${id}`;
+  }
 }
 
 export class FakeLauncher implements Launcher {
@@ -112,6 +115,7 @@ export function fakeContext(parts: {
       sourceLabel: "tracker",
       staleImportMs: 10 * 60_000,
       stages: [],
+      resume: false,
       ...parts.settings,
     },
     now: () => NOW,

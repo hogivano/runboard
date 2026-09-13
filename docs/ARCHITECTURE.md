@@ -28,15 +28,15 @@ library in `domain/` or `application/`, fails the build.
 
 Plain TypeScript, no runtime APIs. What a run is and how it is interpreted:
 
-| Module          | Rules                                                                                            |
-| --------------- | ------------------------------------------------------------------------------------------------ |
-| `run.ts`        | The run record, statuses, run and import ids, which stage asked, which stages a re-run replays   |
-| `stage.ts`      | Building the stage graph from history and configured stages; stage folder names                  |
-| `import_log.ts` | Import status (completed / failed / running / stale) and its activity entries                    |
-| `document.ts`   | Which documents may be served, document id parsing, symlink-safe containment                     |
-| `rerun.ts`      | Re-run inputs (brief reuse, task re-read, repository), answer validation, what "delivered" means |
-| `question.ts`   | Turning a waiting run into an open question                                                      |
-| `errors.ts`     | `InvalidInputError`, `NotFoundError`, `ConflictError`, `LauncherUnavailableError`                |
+| Module          | Rules                                                                                           |
+| --------------- | ----------------------------------------------------------------------------------------------- |
+| `run.ts`        | The run record, statuses, run and import ids, which stage asked, which stages a re-run replays  |
+| `stage.ts`      | Building the stage graph from history and configured stages; stage folder names                 |
+| `import_log.ts` | Import status (completed / failed / running / stale) and its activity entries                   |
+| `document.ts`   | Which documents may be served, document id parsing, symlink-safe containment                    |
+| `rerun.ts`      | Resume or replay, re-run inputs (brief reuse, task re-read, repository), what "delivered" means |
+| `question.ts`   | Turning a waiting run into an open question                                                     |
+| `errors.ts`     | `InvalidInputError`, `NotFoundError`, `ConflictError`, `LauncherUnavailableError`               |
 
 Domain errors describe what went wrong, never an HTTP status.
 

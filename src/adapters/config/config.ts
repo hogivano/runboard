@@ -12,6 +12,11 @@ export interface Config {
    * process, so an unconfigured install only reads runs and records answers.
    */
   launcher: string | null;
+  /**
+   * The launcher accepts `--resume <run-dir>` to continue a halted run in place. Off by
+   * default: answering then starts a fresh run carrying the answer.
+   */
+  resume: boolean;
   /** Working directory the launcher is spawned in. */
   launchCwd: string;
   host: string;
@@ -32,6 +37,7 @@ export interface ConfigFile {
   title?: string;
   runsRoot?: string;
   launcher?: string | null;
+  resume?: boolean;
   launchCwd?: string;
   host?: string;
   port?: number;
@@ -60,6 +66,15 @@ function pick(env: Env, ...keys: string[]): string | undefined {
     if (value !== undefined && value !== "") return value;
   }
   return undefined;
+}
+
+/** A boolean environment value; undefined when unset, an error when it is not a boolean. */
+function flag(env: Env, key: string): boolean | undefined {
+  const value = pick(env, key);
+  if (value === undefined) return undefined;
+  if (/^(1|true|yes|on)$/i.test(value)) return true;
+  if (/^(0|false|no|off)$/i.test(value)) return false;
+  throw new Error(`${key} must be true or false, got "${value}"`);
 }
 
 function readConfigFile(path: string): ConfigFile {
@@ -95,6 +110,7 @@ export function loadConfig(env: Env = Deno.env.get, cwd: string = Deno.cwd()): C
     title: pick(env, "RUNBOARD_TITLE") ?? file.title ?? "runboard",
     runsRoot: runsRoot ? expand(runsRoot, env, base) : join(home(env), ".runboard/runs"),
     launcher: launcher ? expand(launcher, env, base) : null,
+    resume: flag(env, "RUNBOARD_RESUME") ?? file.resume === true,
     launchCwd: launchCwd ? expand(launchCwd, env, base) : cwd,
     host: pick(env, "RUNBOARD_HOST", "HOST") ?? file.host ?? "127.0.0.1",
     port: Number(pick(env, "RUNBOARD_PORT", "PORT") ?? file.port ?? 4177),

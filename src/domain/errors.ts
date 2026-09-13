@@ -20,3 +20,6 @@ export class ConflictError extends DomainError {}
 
 /** An action needs the runner CLI and it is not configured or cannot be executed. */
 export class LauncherUnavailableError extends DomainError {}
+
+/** The runner started but exited at once with an error, so the run never began. */
+export class LaunchFailedError extends DomainError {}

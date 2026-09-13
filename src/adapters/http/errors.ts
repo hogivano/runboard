@@ -3,6 +3,7 @@ import {
   ConflictError,
   InvalidInputError,
   LauncherUnavailableError,
+  LaunchFailedError,
   NotFoundError,
 } from "../../domain/errors.ts";
 
@@ -22,6 +23,8 @@ function statusFor(error: unknown): number | null {
   if (error instanceof LauncherUnavailableError) return 400;
   if (error instanceof NotFoundError) return 404;
   if (error instanceof ConflictError) return 409;
+  // The runner is the upstream here: it was reached and refused.
+  if (error instanceof LaunchFailedError) return 502;
   return null;
 }
 

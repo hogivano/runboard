@@ -64,6 +64,8 @@ export interface RunRecord {
   repository?: string;
   input_source?: InputSource;
   active_stage?: string;
+  /** Stages still queued after `active_stage`. A runner that records it can resume a halt. */
+  stage_queue?: string[];
   fix_rounds?: number;
   reason?: string;
 }

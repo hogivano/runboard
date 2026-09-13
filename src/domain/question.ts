@@ -1,13 +1,16 @@
 /**
- * Open questions: runs waiting on a human. A runner may exit when a stage reports
- * `needs_input` or `blocked`, with no resume; an answer then reaches an agent only through
- * a fresh run started with `--feedback`.
+ * Open questions: runs waiting on a human. A runner exits when a stage reports `needs_input`
+ * or `blocked`. An answer then reaches an agent by resuming that run, when the runner
+ * supports it, or through a fresh run started with `--feedback`.
  */
-import { askingStage, replayedStages, type RunRecord, type RunStatus } from "./run.ts";
+import { rerunPlan } from "./rerun.ts";
+import { askingStage, type RunRecord, type RunStatus } from "./run.ts";
 
-/** How an answer can currently reach the asking agent. */
-export type AnswerChannel = "relaunch" | "next_stage";
-
+/**
+ * How an answer can currently reach the asking agent. `resume`: the halted run continues
+ * from the stage that asked. `relaunch`: only a fresh run carries the answer.
+ */
+export type AnswerChannel = "resume" | "relaunch";
 export interface OpenQuestion {
   runId: string;
   label: string;
@@ -20,9 +23,8 @@ export interface OpenQuestion {
   /** Set when the runner blocked on an error rather than an agent report. */
   reason: string | null;
   askedAt: string;
-  /** `relaunch`: the run exited, only a fresh run carries the answer. */
   channel: AnswerChannel;
-  /** Stages a re-run carrying the answer would replay. */
+  /** Stages that run again when the answer is sent. */
   replays: string[];
   answered: boolean;
 }
@@ -31,8 +33,10 @@ export function toOpenQuestion(
   run: { id: string; label: string; status: RunStatus; activeStage: string | null; updatedAt: string },
   record: RunRecord,
   answered: boolean,
+  resumeSupported: boolean,
 ): OpenQuestion {
   const entry = askingStage(record);
+  const plan = rerunPlan(record, resumeSupported);
   return {
     runId: run.id,
     label: run.label,
@@ -42,8 +46,8 @@ export function toOpenQuestion(
     detail: entry?.report?.summary ?? "",
     reason: record.reason ?? null,
     askedAt: run.updatedAt,
-    channel: "relaunch",
-    replays: replayedStages(record),
+    channel: plan.mode === "resume" ? "resume" : "relaunch",
+    replays: plan.stages,
     answered,
   };
 }

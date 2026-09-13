@@ -19,6 +19,13 @@ Deno.test("listOpenQuestions surfaces the agent that stopped and what it said", 
   assertEquals(question.replays, ["intake"]);
 });
 
+Deno.test("with a resuming runner, a question on its first stage continues in place", async () => {
+  await using env = await withFixtures({ resume: true });
+  const [question] = await env.app.listOpenQuestions();
+  assertEquals(question.channel, "resume");
+  assertEquals(question.replays, ["intake"]);
+});
+
 Deno.test("listOpenQuestions ignores runs that are not waiting", async () => {
   await using env = await withFixtures();
   const ids = (await env.app.listOpenQuestions()).map((question) => question.runId);

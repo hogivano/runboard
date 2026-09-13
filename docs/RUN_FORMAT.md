@@ -18,6 +18,7 @@ Everything below is relative to the runs root (`RUNBOARD_RUNS_ROOT`).
       output.log                 raw agent output
     feedback.md                  written by runboard, read by the runner
     answers.jsonl                written by runboard only
+  .runboard/launches/            written by runboard: output of each runner it started
   imports/                       optional
     <source>-<task-id>-<suffix>/ one read of a task from its source
       output.jsonl               agent stream; ends with a {"type":"result"} line
@@ -33,6 +34,7 @@ Run ids and import folder names must match `[A-Za-z0-9_-]+`.
 | `status`              | string   | yes      | One of the run statuses below                                                      |
 | `history`             | array    | yes      | One entry per executed stage, in order; a stage may repeat                         |
 | `active_stage`        | string   | no       | Stage currently running, or the one that stopped the run                           |
+| `stage_queue`         | array    | no       | Stages still queued after `active_stage`; recording it lets a halted run resume    |
 | `started_at`          | ISO 8601 | no       | Run start                                                                          |
 | `workspace`           | path     | no       | Git worktree the agents work in; its untracked files are listed as agent documents |
 | `repository`          | path     | no       | Repository a re-run should use; if absent the user is asked                        |
@@ -106,6 +108,16 @@ When a launcher is configured, runboard invokes it with an argument list (never 
 | Start                           | `<task-url-or-id> [--repo <path>]`                 |
 | Re-run, reusing the saved brief | `--brief <path> --repo <path> [--feedback <text>]` |
 | Re-run, re-reading the task     | `<task-id> --repo <path> [--feedback <text>]`      |
+| Resume a halted run (optional)  | `--resume <run-dir>`                               |
 
-`--feedback` carries the user's answer into the new run. The launcher is started through `/bin/sh`, detached
-from runboard's signals, so stopping runboard does not stop the run.
+`--feedback` carries the user's answer into the new run.
+
+**Resume** is used only when `resume` is enabled in runboard's configuration, for a run whose `status` is
+`needs_input` or `blocked`, that names its `active_stage`, and that either records `stage_queue` or halted on
+its first stage. The runner should run `active_stage` again in the run's existing directory and worktree, then
+continue with `stage_queue`. No `--feedback` is passed: the answer is already appended to that run's
+`feedback.md`, which the runner rereads for every stage.
+
+A runner that cannot act on its arguments should exit non-zero within two seconds, printing the reason as its
+last line. runboard reports that reason to the user and does not say the run started. The launcher is started
+through `/bin/sh`, detached from runboard's signals, so stopping runboard does not stop the run.

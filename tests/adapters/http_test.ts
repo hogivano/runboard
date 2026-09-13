@@ -81,6 +81,47 @@ Deno.test("POST reply with relaunch sends the answer and reuses the saved brief"
   ]], "a reply must reuse the existing brief instead of re-importing the task");
 });
 
+Deno.test("POST reply with a resuming runner continues the run with its answer in feedback.md", async () => {
+  await using env = await withFixtures({ resume: true });
+  const handler = createHandler(env.config);
+
+  const response = await handler(
+    post("/api/runs/run-question/reply", { answer: "retry twice", relaunch: true }),
+  );
+  assertEquals(response.status, 200);
+  const body = await response.json();
+  assertEquals(body.delivered, true);
+  assertEquals(body.replays, ["intake"]);
+  assertEquals(body.delivery, "Answer sent: the run continues from intake in its own worktree.");
+
+  assertEquals(await env.launchedArgs({ expect: 1 }), [["--resume", join(env.runsRoot, "run-question")]]);
+  const feedback = await Deno.readTextFile(join(env.runsRoot, "run-question/feedback.md"));
+  assertEquals(feedback.split("retry twice").length - 1, 1, "the answer is written once, by runboard");
+  const runs = await (await handler(get("/api/runs"))).json();
+  assert(runs.every((run: { id: string }) => !run.id.startsWith(".")), "launch logs are not runs");
+});
+
+Deno.test("a runner that refuses at once is reported instead of claiming the answer was sent", async () => {
+  await using env = await withFixtures({ resume: true });
+  const launcher = join(env.runsRoot, "..", "refusing-runner");
+  await Deno.writeTextFile(
+    launcher,
+    "#!/bin/sh\necho 'Evidence: pending'\necho 'Cannot start: Resumed worktree left the pinned base commit' >&2\nexit 2\n",
+  );
+  await Deno.chmod(launcher, 0o755);
+  const handler = createHandler({ ...env.config, launcher });
+
+  const reply = await handler(post("/api/runs/run-question/reply", { answer: "yes", relaunch: true }));
+  assertEquals(reply.status, 502);
+  const { error } = await reply.json();
+  assert(error.startsWith("Your answer was recorded, but the run could not continue"), error);
+  assert(error.includes("Cannot start: Resumed worktree left the pinned base commit"), error);
+
+  const start = await handler(post("/api/start", { task: "demo42" }));
+  assertEquals(start.status, 502);
+  assert((await start.json()).error.includes("exited with code 2"));
+});
+
 Deno.test("a second answer is added to feedback.md, never replacing the first", async () => {
   await using env = await withFixtures();
   const handler = createHandler(env.config);

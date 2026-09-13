@@ -83,3 +83,20 @@ Deno.test("a malformed config file fails loudly instead of silently using defaul
     Deno.removeSync(dir, { recursive: true });
   }
 });
+
+Deno.test("resume is off unless the config file or RUNBOARD_RESUME turns it on", () => {
+  const dir = Deno.makeTempDirSync();
+  try {
+    assertEquals(loadConfig(envOf({ HOME: "/home/alex" }), dir).resume, false);
+    Deno.writeTextFileSync(join(dir, "runboard.config.json"), JSON.stringify({ resume: true }));
+    assertEquals(loadConfig(envOf({ HOME: "/home/alex" }), dir).resume, true);
+    assertEquals(loadConfig(envOf({ HOME: "/home/alex", RUNBOARD_RESUME: "false" }), dir).resume, false);
+    assertThrows(
+      () => loadConfig(envOf({ HOME: "/home/alex", RUNBOARD_RESUME: "sometimes" }), dir),
+      Error,
+      "RUNBOARD_RESUME must be true or false",
+    );
+  } finally {
+    Deno.removeSync(dir, { recursive: true });
+  }
+});

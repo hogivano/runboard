@@ -5,7 +5,8 @@
  *
  * @param {{ canLaunch: boolean }} settings  what the server can do
  * @param {{ kind: string, status: string, retryable: boolean }} run
- * @param {{ replays: string[] } | undefined} question  the open question on this run, if any
+ * @param {{ channel: "resume" | "relaunch", replays: string[] } | undefined} question  the open
+ *   question on this run, if any
  */
 export function detailControls(settings, run, question) {
   const isImport = run.kind === "import";
@@ -16,6 +17,8 @@ export function detailControls(settings, run, question) {
     /** Re-run, "answer and re-run", the repository field and the re-read option. */
     showLaunch: canLaunch,
     canRetry: canLaunch && Boolean(run.retryable),
+    /** A resumable run continues where it halted; anything else starts a fresh run. */
+    sendLabel: question?.channel === "resume" ? "Answer and continue run" : "Answer and re-run team",
     warning: replyWarning(canLaunch, run, question),
   };
 }
@@ -27,6 +30,11 @@ function replyWarning(canLaunch, run, question) {
   }
   if (!canLaunch) {
     return "This run has stopped and no launcher is configured, so an answer is recorded here but not sent to an agent.";
+  }
+  if (question?.channel === "resume") {
+    return `This run has stopped. Answering continues it in its own worktree, running ${
+      question.replays.join(", ")
+    } again with your answer.`;
   }
   if (question) {
     return question.replays.length

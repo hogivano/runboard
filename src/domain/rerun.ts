@@ -3,7 +3,7 @@
  * by the caller through a port and passed in, so these stay pure.
  */
 import { ConflictError, InvalidInputError } from "./errors.ts";
-import type { RunRecord } from "./run.ts";
+import { isWaitingStatus, replayedStages, type RunRecord } from "./run.ts";
 
 export const MAX_ANSWER_CHARS = 20_000;
 
@@ -86,12 +86,52 @@ export function runInputArgs(
 }
 
 /**
+ * Whether a runner that supports `--resume` can continue this run where it halted: the run
+ * stopped on a question or a block, names the stage that stopped it, and either recorded
+ * the stages still queued after it or stopped on its very first stage, where nothing
+ * queued could have been lost.
+ */
+export function canResume(record: RunRecord): boolean {
+  const halted = record.active_stage;
+  if (!halted || !isWaitingStatus(record.status)) return false;
+  if (Array.isArray(record.stage_queue)) return true;
+  const history = record.history ?? [];
+  return history.length === 0 || (history.length === 1 && history[0].stage === halted);
+}
+
+/** How sending an answer would reach the agents, and which stages run again. */
+export type RerunPlan =
+  | { mode: "resume"; stages: string[] }
+  | { mode: "replay"; stages: string[] };
+
+/**
+ * Resume when the runner can and the run allows it: only the halted stage runs again, in
+ * the same worktree. Otherwise a fresh run replays every stage up to the one that asked.
+ */
+export function rerunPlan(record: RunRecord, resumeSupported: boolean): RerunPlan {
+  if (resumeSupported && canResume(record)) {
+    return { mode: "resume", stages: [record.active_stage!] };
+  }
+  return { mode: "replay", stages: replayedStages(record) };
+}
+
+/**
+ * Runner arguments that continue a halted run. The answer is not passed with `--feedback`:
+ * runboard has already appended it to the run's `feedback.md`, which every stage rereads,
+ * and passing it again would put it in the prompt twice.
+ */
+export function resumeArgs(runDirectory: string): string[] {
+  return ["--resume", runDirectory];
+}
+
+/**
  * What recording an answer without re-running achieves. The runner reads `feedback.md` only
  * while it is executing, so for a stopped run the honest answer is "stored, not delivered".
  */
 export function recordedAnswerDelivery(
   record: RunRecord,
   canLaunch: boolean,
+  resumeSupported = false,
 ): { delivered: boolean; delivery: string } {
   if (record.status === "running") {
     return {
@@ -102,9 +142,15 @@ export function recordedAnswerDelivery(
   return {
     delivered: false,
     delivery: canLaunch
-      ? "Recorded only. This run has already exited, so no agent will read it until you re-run the team with this answer."
+      ? rerunPlan(record, resumeSupported).mode === "resume"
+        ? "Recorded only. This run has already exited, so no agent will read it until you continue the run."
+        : "Recorded only. This run has already exited, so no agent will read it until you re-run the team with this answer."
       : "Recorded only. This run has already exited and no launcher is configured, so no agent will read it. Re-run the task with your runner and pass this answer along.",
   };
 }
 
 export const SENT_WITH_RERUN = "Answer sent: a fresh run started with it appended to the brief.";
+
+export function sentWithResume(stage: string): string {
+  return `Answer sent: the run continues from ${stage} in its own worktree.`;
+}

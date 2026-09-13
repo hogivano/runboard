@@ -1,6 +1,6 @@
 import { assert, assertEquals, assertRejects } from "@std/assert";
 import { replyToQuestion } from "../../src/application/use_cases/reply_to_question.ts";
-import { InvalidInputError, LauncherUnavailableError } from "../../src/domain/errors.ts";
+import { InvalidInputError, LauncherUnavailableError, LaunchFailedError } from "../../src/domain/errors.ts";
 import { fakeContext, FakeLauncher, InMemoryRunStore, NOW } from "../support/fakes.ts";
 
 const asking = {
@@ -72,4 +72,43 @@ Deno.test("empty answers and imports are refused before anything is stored", asy
     InvalidInputError,
   );
   assertEquals(runs.answers.size, 0);
+});
+
+const resumable = { ...asking, stage_queue: ["build", "review"] };
+
+Deno.test("with a resuming runner, sending an answer continues the halted run in place", async () => {
+  const runs = new InMemoryRunStore().addPipeline("run-a", resumable);
+  const context = fakeContext({ runs, settings: { resume: true } });
+  const result = await replyToQuestion(context, "run-a", {
+    answer: "use postgres",
+    relaunch: true,
+    repo: "/elsewhere",
+  });
+  assertEquals(context.launcher.started, [["--resume", "/runs/run-a"]]);
+  assertEquals(result.replays, ["plan"]);
+  assertEquals(result.delivered, true);
+  assertEquals(result.delivery, "Answer sent: the run continues from plan in its own worktree.");
+  assertEquals(runs.answers.get("run-a")?.length, 1, "the answer reaches the run through feedback.md");
+});
+
+Deno.test("a run the runner cannot resume still gets a fresh run carrying the answer", async () => {
+  const runs = new InMemoryRunStore().addPipeline("run-a", asking);
+  const context = fakeContext({ runs, settings: { resume: true } });
+  const result = await replyToQuestion(context, "run-a", { answer: "use postgres", relaunch: true });
+  assertEquals(context.launcher.started, [["PROJ-7", "--repo", "/repo", "--feedback", "use postgres"]]);
+  assertEquals(result.replays, ["intake", "plan"]);
+});
+
+Deno.test("a runner that refuses to resume is reported, with the answer still recorded", async () => {
+  const runs = new InMemoryRunStore().addPipeline("run-a", resumable);
+  const launcher = new FakeLauncher();
+  launcher.start = () =>
+    Promise.reject(new LaunchFailedError("Resumed worktree left the pinned base commit"));
+  const context = fakeContext({ runs, launcher, settings: { resume: true } });
+  await assertRejects(
+    () => replyToQuestion(context, "run-a", { answer: "ok", relaunch: true }),
+    LaunchFailedError,
+    "Your answer was recorded, but the run could not continue: Resumed worktree left the pinned base commit",
+  );
+  assertEquals(runs.answers.get("run-a")?.length, 1);
 });

@@ -265,7 +265,7 @@ function mountShell(id) {
   next.textarea.value = drafts.get(id) ?? "";
   next.textarea.addEventListener("input", () => drafts.set(id, next.textarea.value));
 
-  /** Records the answer, and optionally re-runs the team carrying it. */
+  /** Records the answer, and optionally sends it: continuing the run, or re-running the team. */
   const reply = async (relaunch) => {
     // The server refuses too; this keeps a hidden button from doing anything if clicked.
     if (relaunch && !settings.canLaunch) return;
@@ -352,6 +352,7 @@ function renderDetail(run) {
     node.hidden = !controls.showLaunch;
   }
   shell.send.disabled = !controls.showLaunch;
+  shell.send.textContent = controls.sendLabel;
   shell.retry.disabled = !controls.canRetry;
   shell.retry.title = run.retryBlockedReason ?? "";
   shell.replayWarning.textContent = controls.warning;

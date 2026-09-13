@@ -13,6 +13,10 @@ const DETAIL_TAIL_BYTES = 512 * 1024;
 export class FsRunStore implements RunStore {
   constructor(private readonly runsRoot: string) {}
 
+  runDirectory(id: string): string {
+    return this.dir(id);
+  }
+
   private dir(id: string): string {
     return join(this.runsRoot, id);
   }

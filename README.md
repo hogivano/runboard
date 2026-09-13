@@ -23,8 +23,9 @@ that format; it does not run agents itself.
 
 Read this before pointing runboard at your machine. Unlike a read-only monitor, runboard:
 
-- **writes** two files inside a run's directory when you answer a question: `feedback.md` and `answers.jsonl`.
-  It never creates run directories.
+- **writes** two files inside a run's directory when you answer a question: `feedback.md` and `answers.jsonl`;
+  and, when it starts your runner, that process's output to `<runs root>/.runboard/launches/`. It never
+  creates run directories.
 - **starts a process** — your runner's CLI — when you start or re-run a run, **only if a launcher is
   configured**. With no launcher, runboard never starts your runner; it reads runs and records answers.
 - **reads** files in each run's git worktree, limited to untracked text files the run created, and runs
@@ -67,6 +68,7 @@ point `RUNBOARD_CONFIG` at a file. Environment variables override the file.
 | -------------------- | --------------------------------- | -------------------- | ---------------------------------------- |
 | `runsRoot`           | `RUNBOARD_RUNS_ROOT`              | `~/.runboard/runs`   | Directory your runner writes runs into   |
 | `launcher`           | `RUNBOARD_LAUNCHER`               | none                 | Runner CLI used to start and re-run runs |
+| `resume`             | `RUNBOARD_RESUME`                 | `false`              | Launcher accepts `--resume <run-dir>`    |
 | `launchCwd`          | `RUNBOARD_LAUNCH_CWD`             | working directory    | Directory the launcher runs in           |
 | `title`              | `RUNBOARD_TITLE`                  | `runboard`           | Dashboard heading                        |
 | `sourceLabel`        | `RUNBOARD_SOURCE_LABEL`           | `task`               | Name of your task source, e.g. `Jira`    |
@@ -94,11 +96,17 @@ How an answer reaches an agent depends on whether the run is still going:
 - **Live run** — the answer is appended to `feedback.md`, which the runner reads when it builds the next stage
   prompt.
 - **Stopped run** — a runner that exits on a question has nothing left to read the file. Recording the answer
-  stores it and nothing more. **Answer and re-run** starts a fresh run with the answer passed as `--feedback`.
+  stores it and nothing more. To send it:
+  - **Answer and continue run**, when `resume` is on and the run can resume: runboard starts
+    `<launcher> --resume <run-dir>`. The runner continues in the same worktree from the stage that asked, and
+    reads your answer from `feedback.md`. Only that stage runs again.
+  - **Answer and re-run team** otherwise: a fresh run starts with the answer passed as `--feedback`, replaying
+    every stage up to the one that asked. It reuses the brief the original import produced, so answering does
+    not pay for re-reading the task; tick _Re-read the task_ to refresh it.
 
-runboard says which of the two happened instead of reporting success either way, and shows which stages a
-re-run would replay before you click. A re-run reuses the brief the original import produced, so answering
-does not pay for re-reading the task; tick _Re-read the task_ to refresh it.
+runboard says what happened instead of reporting success either way, and shows which stages run again before
+you click. If the runner refuses at once — the run cannot resume, a login expired — runboard shows the
+runner's own reason and keeps your answer, rather than claiming it was sent.
 
 ## Agent documents
 
@@ -161,8 +169,8 @@ starts a real agent.
 | `POST` | `/api/runs/<id>/reply`            | `{ answer, relaunch?, repo?, refreshTask? }`                              |
 | `POST` | `/api/runs/<id>/retry`            | `{ repo?, feedback?, refreshTask? }`                                      |
 
-Errors are `{ "error": "..." }` with `400` (bad input or no launcher), `403` (sandbox), `404` (no such run) or
-`409` (run still active).
+Errors are `{ "error": "..." }` with `400` (bad input or no launcher), `403` (sandbox), `404` (no such run),
+`409` (run still active) or `502` (the runner exited with an error as it started).
 
 ## License
 

@@ -2,7 +2,7 @@ import { assert, assertEquals, assertNotEquals } from "@std/assert";
 import { detailControls, documentsKey } from "../../public/controls.js";
 
 const stopped = { kind: "pipeline", status: "needs_input", retryable: true };
-const question = { replays: ["intake", "plan"] };
+const question = { channel: "relaunch" as const, replays: ["intake", "plan"] };
 
 Deno.test("with a launcher, a stopped run offers answer-and-re-run", () => {
   const controls = detailControls({ canLaunch: true }, stopped, question);
@@ -10,6 +10,14 @@ Deno.test("with a launcher, a stopped run offers answer-and-re-run", () => {
   assertEquals(controls.showLaunch, true);
   assertEquals(controls.canRetry, true);
   assert(controls.warning.includes("replaying: intake, plan"));
+});
+
+Deno.test("a resumable run offers to continue, naming only the stage that runs again", () => {
+  const controls = detailControls({ canLaunch: true }, stopped, { channel: "resume", replays: ["plan"] });
+  assertEquals(controls.sendLabel, "Answer and continue run");
+  assert(controls.warning.includes("continues it in its own worktree, running plan again"));
+  assert(!controls.warning.includes("from the start"));
+  assertEquals(detailControls({ canLaunch: true }, stopped, question).sendLabel, "Answer and re-run team");
 });
 
 Deno.test("without a launcher, nothing that launches is offered and the copy says so", () => {

@@ -10,6 +10,8 @@ export interface AppSettings {
   staleImportMs: number;
   /** Expected stage order and labels. */
   stages: readonly StageSpec[];
+  /** The runner accepts `--resume <run-dir>` to continue a halted run. */
+  resume: boolean;
 }
 
 export interface AppContext {
