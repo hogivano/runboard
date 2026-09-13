@@ -112,6 +112,8 @@ export interface StageView {
 export interface RunDetail extends RunSummary {
   history: HistoryEntry[];
   stages: StageView[];
+  /** Latest write anywhere in the run's directory tree, including inside stage folders. */
+  activityAt: string;
   events: RunEvent[];
   files: string[];
   reason: string | null;

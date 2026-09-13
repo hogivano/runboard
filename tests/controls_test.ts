@@ -48,4 +48,7 @@ Deno.test("the document list reloads when the run moves on, not on every poll", 
   assertNotEquals(documentsKey(run), documentsKey({ ...run, stages: [{}, {}] }));
   assertNotEquals(documentsKey(run), documentsKey({ ...run, updatedAt: "2026-01-01T00:00:05Z" }));
   assertNotEquals(documentsKey(run), documentsKey({ ...run, files: ["state.json", "feedback.md"] }));
+  // An agent writing inside a stage folder moves activityAt without touching state.json.
+  const live = { ...run, activityAt: "2026-01-01T00:00:00Z" };
+  assertNotEquals(documentsKey(live), documentsKey({ ...live, activityAt: "2026-01-01T00:00:09Z" }));
 });

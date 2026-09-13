@@ -1,3 +1,4 @@
+import { join } from "@std/path";
 import { assert, assertEquals, assertRejects } from "@std/assert";
 import { getRun, listRuns } from "../src/runs.ts";
 import { HttpError } from "../src/errors.ts";
@@ -68,4 +69,15 @@ Deno.test("getRun rejects unknown runs and unsafe ids", async () => {
     const error = await assertRejects(() => getRun(env.config, id), HttpError);
     assertEquals(error.status, status);
   }
+});
+
+Deno.test("activityAt moves when an agent writes inside a stage folder", async () => {
+  await using env = await withFixtures();
+  const before = (await getRun(env.config, "run-question")).activityAt;
+  const later = new Date(Date.parse(before) + 60_000);
+  const log = join(env.runsRoot, "run-question/01-intake-analyst/output.log");
+  await Deno.writeTextFile(log, "agent output\n");
+  await Deno.utime(log, later, later);
+  const after = (await getRun(env.config, "run-question")).activityAt;
+  assertEquals(after, later.toISOString());
 });

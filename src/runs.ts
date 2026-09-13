@@ -256,6 +256,30 @@ export function stageGraph(state: RunState, config: Config): StageView[] {
 
 // ----------------------------------------------------------------- detail
 
+/** Stage folders are `NN-<stage>-<role>`. */
+const STAGE_DIR = /^\d+-.+-[a-z]+$/;
+
+/**
+ * Latest modification time anywhere a runner writes during a run: the run directory,
+ * its files, each stage folder and the files inside it. state.json alone misses an agent
+ * writing its report or output.log mid-stage.
+ */
+async function latestActivity(dir: string, fallback: string): Promise<string> {
+  let latest = 0;
+  const consider = async (path: string) => {
+    const mtime = await modifiedAt(path);
+    if (mtime && mtime.getTime() > latest) latest = mtime.getTime();
+  };
+  await consider(dir);
+  for (const entry of await listEntries(dir)) {
+    const path = join(dir, entry.name);
+    await consider(path);
+    if (!entry.isDirectory || !STAGE_DIR.test(entry.name)) continue;
+    for (const file of await listEntries(path)) await consider(join(path, file.name));
+  }
+  return latest ? new Date(latest).toISOString() : fallback;
+}
+
 async function listFiles(dir: string): Promise<string[]> {
   return (await listEntries(dir)).filter((e) => e.isFile).map((e) => e.name).sort();
 }
@@ -280,6 +304,7 @@ export async function getRun(config: Config, rawId: string): Promise<RunDetail> 
       ...importSummary(id, probe, config),
       history: [],
       stages: [],
+      activityAt: probe.updatedAt,
       events: probe.events,
       files: await listFiles(dir),
       reason: null,
@@ -297,6 +322,7 @@ export async function getRun(config: Config, rawId: string): Promise<RunDetail> 
     ...summary,
     history: (state.history ?? []) as HistoryEntry[],
     stages: stageGraph(state, config),
+    activityAt: await latestActivity(dir, updatedAt),
     events: await pipelineEvents(dir),
     files: await listFiles(dir),
     reason: state.reason ?? null,

@@ -34,6 +34,13 @@ Deno.test("readDocument serves the JSONL activity log", async () => {
   assert(doc.content.includes("analyst started intake"));
 });
 
+Deno.test("readDocument serves a log's raw bytes, malformed lines included", async () => {
+  await using env = await withFixtures();
+  // The run list skips unparseable JSONL; the document viewer must show the file as written.
+  const doc = await readDocument(env.config, "run-legacy", "run/events.jsonl");
+  assert(doc.content.includes("{bad json"));
+});
+
 Deno.test("readDocument refuses to escape the run or serve binary-ish files", async () => {
   await using env = await withFixtures();
   const cases: [string, number][] = [

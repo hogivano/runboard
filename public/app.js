@@ -171,7 +171,9 @@ function eventList(run) {
 /** Lists a run's agent documents; the body is fetched only when one is opened. */
 async function loadDocuments(id) {
   const list = shell.documentList;
-  const openId = list.querySelector('.document[aria-current="true"]')?.dataset.doc;
+  const openButton = list.querySelector('.document[aria-current="true"]');
+  const openId = openButton?.dataset.doc;
+  const openSize = openButton?.dataset.size;
   let documents;
   try {
     documents = await api(runPath(id, "/documents"));
@@ -189,20 +191,26 @@ async function loadDocuments(id) {
         ? "worktree note"
         : [doc.role, doc.stage].filter(Boolean).join(" · ") || "run";
       const size = `${Math.max(1, Math.round(doc.size / 1024))} KB`;
-      return `<button type="button" class="document" data-doc="${esc(doc.id)}"
+      return `<button type="button" class="document" data-doc="${esc(doc.id)}" data-size="${doc.size}"
         aria-current="${doc.id === openId}" ${doc.readable ? "" : "disabled"}>
         ${esc(doc.name)}<small>${esc(where)} · ${size}</small>
       </button>`;
     })
     .join("");
+  // A document that is open and changed size (a growing output.log) is fetched again.
+  const reopened = openId && list.querySelector(`.document[data-doc="${CSS.escape(openId)}"]`);
+  if (reopened && reopened.dataset.size !== openSize) openDocument(id, openId, reopened, true);
 }
 
-async function openDocument(id, documentId, button) {
+async function openDocument(id, documentId, button, keepScroll = false) {
   for (const node of shell.documentList.querySelectorAll(".document")) {
     node.setAttribute("aria-current", String(node === button));
   }
-  shell.documentTitle.textContent = "Loading…";
-  shell.documentContent.hidden = true;
+  const scrollTop = shell.documentContent.scrollTop;
+  if (!keepScroll) {
+    shell.documentTitle.textContent = "Loading…";
+    shell.documentContent.hidden = true;
+  }
   try {
     const doc = await api(runPath(id, `/documents/${documentId}`));
     shell.documentTitle.textContent = doc.truncated
@@ -210,6 +218,7 @@ async function openDocument(id, documentId, button) {
       : doc.name;
     shell.documentContent.textContent = doc.content;
     shell.documentContent.hidden = false;
+    if (keepScroll) shell.documentContent.scrollTop = scrollTop;
   } catch (error) {
     shell.documentTitle.textContent = error.message;
   }

@@ -43,5 +43,9 @@ function replyWarning(canLaunch, run, question) {
  * it changes — each reload runs `git status` in the worktree, so it must not run every poll.
  */
 export function documentsKey(run) {
-  return [run.updatedAt, run.stages?.length ?? 0, (run.files ?? []).join("|")].join("::");
+  return [
+    run.activityAt ?? run.updatedAt,
+    run.stages?.length ?? 0,
+    (run.files ?? []).join("|"),
+  ].join("::");
 }
