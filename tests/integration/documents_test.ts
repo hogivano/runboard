@@ -1,7 +1,7 @@
 import { assert, assertEquals, assertRejects } from "@std/assert";
 import { join } from "@std/path";
-import { InvalidInputError, NotFoundError } from "../src/domain/errors.ts";
-import { withFixtures } from "./helpers.ts";
+import { InvalidInputError, NotFoundError } from "../../src/domain/errors.ts";
+import { withFixtures } from "../support/fixtures.ts";
 
 Deno.test("listDocuments returns each stage's files tagged with the agent that wrote them", async () => {
   await using env = await withFixtures();

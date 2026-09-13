@@ -1,7 +1,7 @@
 import { join } from "@std/path";
 import { assert, assertEquals, assertRejects } from "@std/assert";
-import { InvalidInputError, NotFoundError } from "../src/domain/errors.ts";
-import { withFixtures } from "./helpers.ts";
+import { InvalidInputError, NotFoundError } from "../../src/domain/errors.ts";
+import { withFixtures } from "../support/fixtures.ts";
 
 Deno.test("listRuns folds a consumed import into the run it produced", async () => {
   await using env = await withFixtures();

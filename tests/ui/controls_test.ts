@@ -1,5 +1,5 @@
 import { assert, assertEquals, assertNotEquals } from "@std/assert";
-import { detailControls, documentsKey } from "../public/controls.js";
+import { detailControls, documentsKey } from "../../public/controls.js";
 
 const stopped = { kind: "pipeline", status: "needs_input", retryable: true };
 const question = { replays: ["intake", "plan"] };

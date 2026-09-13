@@ -1,7 +1,7 @@
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { createHandler } from "../src/main.ts";
-import { withFixtures } from "./helpers.ts";
+import { createHandler } from "../../src/main.ts";
+import { withFixtures } from "../support/fixtures.ts";
 
 const IMPORT_ID = "imports/tracker-demo42-a1b2c3";
 
@@ -99,7 +99,7 @@ Deno.test("a second answer is added to feedback.md, never replacing the first", 
 });
 
 Deno.test("the detail template carries every field the client asks for", async () => {
-  const here = new URL("../public/", import.meta.url);
+  const here = new URL("../../public/", import.meta.url);
   const [html, app] = await Promise.all([
     Deno.readTextFile(new URL("index.html", here)),
     Deno.readTextFile(new URL("app.js", here)),

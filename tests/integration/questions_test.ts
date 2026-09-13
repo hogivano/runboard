@@ -1,6 +1,6 @@
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { withFixtures } from "./helpers.ts";
+import { withFixtures } from "../support/fixtures.ts";
 
 Deno.test("listOpenQuestions surfaces the agent that stopped and what it said", async () => {
   await using env = await withFixtures();

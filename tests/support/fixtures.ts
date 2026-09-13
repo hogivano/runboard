@@ -1,11 +1,11 @@
 import { copy } from "@std/fs";
 import { fromFileUrl, join } from "@std/path";
-import type { Application } from "../src/application/app.ts";
-import type { Config } from "../src/adapters/config/config.ts";
-import { createApp } from "../src/main.ts";
+import type { Application } from "../../src/application/app.ts";
+import type { Config } from "../../src/adapters/config/config.ts";
+import { createApp } from "../../src/main.ts";
 
-const FIXTURE_RUNS = fromFileUrl(new URL("./fixtures/runs", import.meta.url));
-const FIXTURE_WORKSPACE = fromFileUrl(new URL("./fixtures/workspace", import.meta.url));
+const FIXTURE_RUNS = fromFileUrl(new URL("../fixtures/runs", import.meta.url));
+const FIXTURE_WORKSPACE = fromFileUrl(new URL("../fixtures/workspace", import.meta.url));
 
 export interface TestEnv extends AsyncDisposable {
   config: Config;

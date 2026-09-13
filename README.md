@@ -132,20 +132,20 @@ deno task check   # type check, lint, format check
 ```
 
 ```
-src/config.ts     config file + environment → Config
-src/types.ts      the run format's shapes          ← update with docs/RUN_FORMAT.md
-src/jsonl.ts      tolerant JSONL reading (logs are read while being appended)
-src/runs.ts       run list, run detail, stage graph
-src/questions.ts  open questions, and how an answer can reach an agent
-src/documents.ts  agent documents from the run directory and worktree
-src/actions.ts    start / reply / re-run, and the launcher spawn
-src/server.ts     routing and error → HTTP status mapping
-public/           dashboard page, styles and client script
-tests/            tests over copied fixtures with a stub launcher
+src/domain/        entities and business rules — no I/O, no runtime APIs
+src/application/   use cases, ports (RunStore, DocumentStore, WorkspaceScanner, Launcher)
+src/adapters/      http, filesystem, process (launcher, git), config
+src/main.ts        composition root
+public/            dashboard page, styles and client script
+tests/             domain, application (in-memory fakes), integration, adapters, architecture
 ```
 
-Tests copy `tests/fixtures` into a temporary directory and use a stub launcher that records its arguments, so
-no test reads your real runs or starts a real agent.
+The dependency rule is enforced by `tests/architecture_test.ts`. See
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the layers and how to add a feature.
+
+Domain and use case tests need no filesystem. Integration and adapter tests copy `tests/fixtures` into a
+temporary directory and use a stub launcher that records its arguments, so no test reads your real runs or
+starts a real agent.
 
 ## API
 

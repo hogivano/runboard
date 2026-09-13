@@ -1,7 +1,6 @@
 import { assertEquals } from "@std/assert";
-import type { RunRecord } from "../src/domain/run.ts";
-import { buildStageGraph } from "../src/domain/stage.ts";
-import { withFixtures } from "./helpers.ts";
+import type { RunRecord } from "../../src/domain/run.ts";
+import { buildStageGraph } from "../../src/domain/stage.ts";
 
 const state: RunRecord = {
   status: "running",
@@ -13,9 +12,8 @@ const state: RunRecord = {
   ],
 };
 
-Deno.test("with no configured stages, a run draws exactly the stages it ran", async () => {
-  await using env = await withFixtures();
-  const stages = buildStageGraph(state, env.config.stages);
+Deno.test("with no configured stages, a run draws exactly the stages it ran", () => {
+  const stages = buildStageGraph(state, []);
   assertEquals(stages.map((stage) => stage.id), ["intake", "build", "review"]);
   assertEquals(stages[0].label, "analyst · intake");
   // A repeated stage (a fix round) shows its latest outcome.
@@ -24,16 +22,13 @@ Deno.test("with no configured stages, a run draws exactly the stages it ran", as
   assertEquals(stages[2].status, "active");
 });
 
-Deno.test("configured stages set order and labels and show stages not started yet", async () => {
-  await using env = await withFixtures({
-    stages: [
-      { id: "intake", label: "Requirements" },
-      { id: "build" },
-      { id: "review", label: "Code review" },
-      { id: "release", label: "Release" },
-    ],
-  });
-  const stages = buildStageGraph(state, env.config.stages);
+Deno.test("configured stages set order and labels and show stages not started yet", () => {
+  const stages = buildStageGraph(state, [
+    { id: "intake", label: "Requirements" },
+    { id: "build" },
+    { id: "review", label: "Code review" },
+    { id: "release", label: "Release" },
+  ]);
   assertEquals(stages.map((stage) => [stage.id, stage.label, stage.status]), [
     ["intake", "Requirements", "pass"],
     ["build", "builder · build", "pass"],
@@ -42,8 +37,7 @@ Deno.test("configured stages set order and labels and show stages not started ye
   ]);
 });
 
-Deno.test("a stage the runner invented is still shown after the configured ones", async () => {
-  await using env = await withFixtures({ stages: [{ id: "intake" }] });
-  const stages = buildStageGraph(state, env.config.stages);
+Deno.test("a stage the runner invented is still shown after the configured ones", () => {
+  const stages = buildStageGraph(state, [{ id: "intake" }]);
   assertEquals(stages.map((stage) => stage.id), ["intake", "build", "review"]);
 });
