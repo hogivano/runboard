@@ -58,6 +58,9 @@ deno task compile
 ./dist/runboard
 ```
 
+Prebuilt binaries for Linux and macOS (x86_64 and arm64), with `SHA256SUMS`, are attached to each
+[release](https://github.com/hogivano/runboard/releases).
+
 ## Configuration
 
 Zero configuration reads `~/.runboard/runs` and never launches anything. To configure, copy

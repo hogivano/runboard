@@ -4,12 +4,11 @@ on:
   push:
     tags: ["v*"]
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         target:
@@ -22,12 +21,48 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno task test
       - name: Compile
         run: >
           deno compile --allow-env --allow-net=127.0.0.1 --allow-read --allow-write --allow-run
           --include public --target ${{ matrix.target }}
           --output dist/runboard-${{ matrix.target }} src/main.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runboard-${{ matrix.target }}
+          path: dist/runboard-${{ matrix.target }}
+          if-no-files-found: error
+
+  # One job publishes, so parallel builds never race to create the same release.
+  publish:
+    needs: [test, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: cd dist && sha256sum runboard-* > SHA256SUMS
       - uses: softprops/action-gh-release@v2
         with:
-          files: dist/runboard-${{ matrix.target }}
+          generate_release_notes: true
+          files: |
+            dist/runboard-*
+            dist/SHA256SUMS
+
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno task check
+      - run: deno task test
