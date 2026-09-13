@@ -1,6 +1,6 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import { join } from "@std/path";
-import { loadConfig } from "../src/config.ts";
+import { loadConfig } from "../src/adapters/config/config.ts";
 
 function envOf(values: Record<string, string>) {
   return (key: string) => values[key];

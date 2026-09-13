@@ -1,10 +1,5 @@
 import { isAbsolute, join, resolve } from "@std/path";
-
-/** A stage the pipeline is expected to run, in order, with an optional display label. */
-export interface StageSpec {
-  id: string;
-  label?: string;
-}
+import type { StageSpec } from "../../domain/stage.ts";
 
 /** Everything runboard reads from the environment and config file, resolved once at boot. */
 export interface Config {

@@ -1,6 +1,6 @@
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { createHandler } from "../src/server.ts";
+import { createHandler } from "../src/main.ts";
 import { withFixtures } from "./helpers.ts";
 
 const IMPORT_ID = "imports/tracker-demo42-a1b2c3";

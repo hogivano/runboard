@@ -1,12 +1,16 @@
 import { copy } from "@std/fs";
 import { fromFileUrl, join } from "@std/path";
-import type { Config } from "../src/config.ts";
+import type { Application } from "../src/application/app.ts";
+import type { Config } from "../src/adapters/config/config.ts";
+import { createApp } from "../src/main.ts";
 
 const FIXTURE_RUNS = fromFileUrl(new URL("./fixtures/runs", import.meta.url));
 const FIXTURE_WORKSPACE = fromFileUrl(new URL("./fixtures/workspace", import.meta.url));
 
 export interface TestEnv extends AsyncDisposable {
   config: Config;
+  /** The application wired with production adapters over the throwaway runs root. */
+  app: Application;
   /** Absolute path of the throwaway runs root, safe to write into. */
   runsRoot: string;
   /** Git worktree used by `run-recorded`, holding one tracked and one untracked file. */
@@ -64,22 +68,25 @@ export async function withFixtures(overrides: Partial<Config> = {}): Promise<Tes
   );
   await Deno.chmod(launcher, 0o755);
 
+  const config: Config = {
+    runsRoot,
+    launcher,
+    launchCwd: base,
+    host: "127.0.0.1",
+    port: 0,
+    staleImportMs: 10 * 60_000,
+    title: "runboard test",
+    sourceLabel: "tracker",
+    stages: [],
+    ...overrides,
+  };
+
   return {
     runsRoot,
     workspace,
     briefPath,
-    config: {
-      runsRoot,
-      launcher,
-      launchCwd: base,
-      host: "127.0.0.1",
-      port: 0,
-      staleImportMs: 10 * 60_000,
-      title: "runboard test",
-      sourceLabel: "tracker",
-      stages: [],
-      ...overrides,
-    },
+    config,
+    app: createApp(config),
     async launchedArgs({ expect = 0, timeoutMs = 5000 } = {}) {
       const deadline = Date.now() + timeoutMs;
       let launches: string[][] = [];

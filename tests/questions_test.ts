@@ -1,11 +1,10 @@
 import { assert, assertEquals } from "@std/assert";
 import { join } from "@std/path";
-import { listOpenQuestions } from "../src/questions.ts";
 import { withFixtures } from "./helpers.ts";
 
 Deno.test("listOpenQuestions surfaces the agent that stopped and what it said", async () => {
   await using env = await withFixtures();
-  const questions = await listOpenQuestions(env.config);
+  const questions = await env.app.listOpenQuestions();
 
   assertEquals(questions.map((question) => question.runId), ["run-question"]);
   const [question] = questions;
@@ -22,7 +21,7 @@ Deno.test("listOpenQuestions surfaces the agent that stopped and what it said", 
 
 Deno.test("listOpenQuestions ignores runs that are not waiting", async () => {
   await using env = await withFixtures();
-  const ids = (await listOpenQuestions(env.config)).map((question) => question.runId);
+  const ids = (await env.app.listOpenQuestions()).map((question) => question.runId);
   assert(!ids.includes("run-legacy"), "ready_for_manager_review is not a question");
   assert(!ids.includes("run-recorded"));
 });
@@ -35,7 +34,7 @@ Deno.test("listOpenQuestions reports a run blocked by an exception with its reas
   state.reason = "Fix-round budget exhausted; escalate to manager";
   await Deno.writeTextFile(statePath, JSON.stringify(state));
 
-  const question = (await listOpenQuestions(env.config)).find((q) => q.runId === "run-legacy");
+  const question = (await env.app.listOpenQuestions()).find((q) => q.runId === "run-legacy");
   assert(question, "a blocked run needs an answer too");
   assertEquals(question.reason, "Fix-round budget exhausted; escalate to manager");
 });
@@ -46,6 +45,6 @@ Deno.test("listOpenQuestions marks a question that already has a recorded answer
     join(env.runsRoot, "run-question/answers.jsonl"),
     '{"answer":"zero"}\n',
   );
-  const [question] = await listOpenQuestions(env.config);
+  const [question] = await env.app.listOpenQuestions();
   assertEquals(question.answered, true);
 });

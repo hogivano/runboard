@@ -6,7 +6,7 @@
  */
 import { copy } from "@std/fs";
 import { fromFileUrl, join } from "@std/path";
-import { loadConfig } from "../src/config.ts";
+import { loadConfig } from "../src/adapters/config/config.ts";
 import { serve } from "../src/main.ts";
 
 const samples = fromFileUrl(new URL("../tests/fixtures/runs", import.meta.url));

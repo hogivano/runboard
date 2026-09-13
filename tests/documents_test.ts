@@ -1,12 +1,11 @@
 import { assert, assertEquals, assertRejects } from "@std/assert";
 import { join } from "@std/path";
-import { listDocuments, readDocument } from "../src/documents.ts";
-import { HttpError } from "../src/errors.ts";
+import { InvalidInputError, NotFoundError } from "../src/domain/errors.ts";
 import { withFixtures } from "./helpers.ts";
 
 Deno.test("listDocuments returns each stage's files tagged with the agent that wrote them", async () => {
   await using env = await withFixtures();
-  const documents = await listDocuments(env.config, "run-question");
+  const documents = await env.app.listDocuments("run-question");
 
   const report = documents.find((doc) => doc.name === "report.json");
   assert(report, "the intake report should be listed");
@@ -22,7 +21,7 @@ Deno.test("listDocuments returns each stage's files tagged with the agent that w
 
 Deno.test("readDocument returns the content of an agent document", async () => {
   await using env = await withFixtures();
-  const doc = await readDocument(env.config, "run-question", "stage/01-intake-analyst/report.json");
+  const doc = await env.app.readDocument("run-question", "stage/01-intake-analyst/report.json");
   assertEquals(doc.name, "report.json");
   assertEquals(doc.truncated, false);
   assertEquals(JSON.parse(doc.content).status, "needs_input");
@@ -30,14 +29,14 @@ Deno.test("readDocument returns the content of an agent document", async () => {
 
 Deno.test("readDocument serves the JSONL activity log", async () => {
   await using env = await withFixtures();
-  const doc = await readDocument(env.config, "run-question", "run/events.jsonl");
+  const doc = await env.app.readDocument("run-question", "run/events.jsonl");
   assert(doc.content.includes("analyst started intake"));
 });
 
 Deno.test("readDocument serves a log's raw bytes, malformed lines included", async () => {
   await using env = await withFixtures();
   // The run list skips unparseable JSONL; the document viewer must show the file as written.
-  const doc = await readDocument(env.config, "run-legacy", "run/events.jsonl");
+  const doc = await env.app.readDocument("run-legacy", "run/events.jsonl");
   assert(doc.content.includes("{bad json"));
 });
 
@@ -51,13 +50,12 @@ Deno.test("readDocument refuses to escape the run or serve binary-ish files", as
     ["run/archive.zip", 400],
   ];
   for (const [documentId, status] of cases) {
-    const error = await assertRejects(
-      () => readDocument(env.config, "run-question", documentId),
-      HttpError,
+    await assertRejects(
+      () => env.app.readDocument("run-question", documentId),
+      status === 404 ? NotFoundError : InvalidInputError,
       undefined,
-      `expected ${documentId} to be refused`,
+      `expected ${documentId} to be refused with ${status}`,
     );
-    assertEquals(error.status, status, documentId);
   }
 });
 
@@ -68,11 +66,11 @@ Deno.test("readDocument follows a symlink but refuses one pointing outside the r
     await Deno.writeTextFile(join(outside, "secret.md"), "not yours");
     await Deno.symlink(join(outside, "secret.md"), join(env.runsRoot, "run-question/link.md"));
 
-    const error = await assertRejects(
-      () => readDocument(env.config, "run-question", "run/link.md"),
-      HttpError,
+    await assertRejects(
+      () => env.app.readDocument("run-question", "run/link.md"),
+      InvalidInputError,
+      "escapes the run",
     );
-    assertEquals(error.status, 400);
   } finally {
     await Deno.remove(outside, { recursive: true });
   }
@@ -80,7 +78,7 @@ Deno.test("readDocument follows a symlink but refuses one pointing outside the r
 
 Deno.test("listDocuments lists agent notes from the worktree but not tracked repo files", async () => {
   await using env = await withFixtures();
-  const documents = await listDocuments(env.config, "run-recorded");
+  const documents = await env.app.listDocuments("run-recorded");
   const workspaceDocs = documents.filter((doc) => doc.source === "workspace");
 
   assertEquals(workspaceDocs.map((doc) => doc.name), ["NOTE_BUILDER_EXAMPLE.md"]);
@@ -89,12 +87,12 @@ Deno.test("listDocuments lists agent notes from the worktree but not tracked rep
     "a tracked repo file is not an agent document",
   );
 
-  const note = await readDocument(env.config, "run-recorded", workspaceDocs[0].id);
+  const note = await env.app.readDocument("run-recorded", workspaceDocs[0].id);
   assert(note.content.includes("retry twice"));
 });
 
 Deno.test("listDocuments works for a run with no workspace on disk", async () => {
   await using env = await withFixtures();
-  const documents = await listDocuments(env.config, "run-legacy");
+  const documents = await env.app.listDocuments("run-legacy");
   assertEquals(documents.map((doc) => doc.id).sort(), ["run/events.jsonl", "run/state.json"]);
 });
