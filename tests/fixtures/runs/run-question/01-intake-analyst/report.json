@@ -1,0 +1,20 @@
+{
+  "status": "needs_input",
+  "summary": "Requirements are clear except one product decision.\\n\\nOPEN QUESTION: should failed exports retry automatically, and how many times?\\n\\nRecommendation: retry twice with backoff.",
+  "acceptance_criteria": [
+    "AC1: a failed export is retried",
+    "AC2: retries stop after the agreed limit"
+  ],
+  "test_cases": [
+    "TC1: force one failure and confirm a retry"
+  ],
+  "evidence": [
+    "src/export/job.ts has no retry wrapper"
+  ],
+  "artifacts": [],
+  "checks": [],
+  "issues": [],
+  "engineers": [
+    "builder"
+  ]
+}

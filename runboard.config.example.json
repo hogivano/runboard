@@ -1,0 +1,14 @@
+{
+  "title": "Platform team pipeline",
+  "runsRoot": "~/.my-runner/runs",
+  "launcher": "~/.local/bin/my-runner",
+  "sourceLabel": "Jira",
+  "staleImportMinutes": 10,
+  "stages": [
+    { "id": "intake", "label": "Analyst · requirements" },
+    { "id": "plan", "label": "Lead · technical plan" },
+    { "id": "build", "label": "Builder · code" },
+    { "id": "review", "label": "Reviewer · review" },
+    { "id": "qa", "label": "QA · end-to-end" }
+  ]
+}

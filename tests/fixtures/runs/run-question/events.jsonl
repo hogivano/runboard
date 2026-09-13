@@ -1,0 +1,2 @@
+{"time": "2026-01-10T09:00:00+00:00", "stage": "intake", "role": "analyst", "message": "analyst started intake (claude, sonnet)"}
+{"time": "2026-01-10T09:01:10+00:00", "stage": "intake", "role": "analyst", "status": "needs_input", "message": "analyst finished intake: needs_input", "diff_stat": "no working-tree diff yet"}

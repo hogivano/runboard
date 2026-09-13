@@ -1,0 +1,38 @@
+{
+  "status": "needs_input",
+  "workspace": "/tmp/runboard-example/worktrees/task-demo42",
+  "history": [
+    {
+      "stage": "intake",
+      "role": "analyst",
+      "engine": "claude",
+      "model": "sonnet",
+      "effort": "medium",
+      "report": {
+        "status": "needs_input",
+        "summary": "Requirements are clear except one product decision.\\n\\nOPEN QUESTION: should failed exports retry automatically, and how many times?\\n\\nRecommendation: retry twice with backoff.",
+        "acceptance_criteria": ["AC1: a failed export is retried", "AC2: retries stop after the agreed limit"],
+        "test_cases": ["TC1: force one failure and confirm a retry"],
+        "evidence": ["src/export/job.ts has no retry wrapper"],
+        "artifacts": [],
+        "checks": [],
+        "issues": [],
+        "engineers": ["builder"]
+      },
+      "diff_stat": "no working-tree diff yet"
+    }
+  ],
+  "runner_prompt_chars": 12000,
+  "stage_calls": 2,
+  "started_at": "2026-01-10T09:00:00+00:00",
+  "base_sha": "0000000000000000000000000000000000000000",
+  "input_source": {
+    "type": "tracker",
+    "task_id": "demo42",
+    "path": "/tmp/runboard-example/runs/imports/tracker-demo42-a1b2c3",
+    "runner_prompt_chars": 900,
+    "stage_calls": 1
+  },
+  "active_stage": "intake",
+  "fix_rounds": 0
+}

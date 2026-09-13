@@ -1,0 +1,10 @@
+{
+  "status": "ready_for_manager_review",
+  "workspace": "/tmp/runboard-example/worktrees/task-recorded",
+  "history": [{"stage": "intake", "role": "analyst", "report": {"status": "pass"}}],
+  "runner_prompt_chars": 3400,
+  "stage_calls": 9,
+  "started_at": "2026-01-09T09:00:00+00:00",
+  "brief_path": "/tmp/brief.md",
+  "repository": "/tmp/recorded-repo"
+}

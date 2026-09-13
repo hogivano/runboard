@@ -1,0 +1,9 @@
+{
+  "status": "ready_for_manager_review",
+  "workspace": "/tmp/runboard-example/worktrees/task-legacy",
+  "history": [{"stage": "intake", "role": "analyst", "report": {"status": "pass"}, "diff_stat": "2 files changed"}],
+  "runner_prompt_chars": 1200,
+  "stage_calls": 4,
+  "started_at": "2026-01-09T01:00:00+00:00",
+  "active_stage": "acceptance"
+}

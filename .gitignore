@@ -1,0 +1,8 @@
+# Deno
+.deno/
+
+# Local configuration: machine paths, team names and stage labels
+runboard.config.json
+
+# Build output
+dist/

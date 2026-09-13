@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>runboard</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="muted">RUNBOARD</p>
+          <h1 id="app-title">runboard</h1>
+          <p class="muted">Watch agent pipeline runs, read what each agent wrote, answer their questions.</p>
+          <p id="app-notice" class="notice" role="status"></p>
+        </div>
+        <button id="refresh" type="button">Refresh</button>
+      </header>
+
+      <section class="panel" id="start-panel" hidden>
+        <h2 id="start-title">Start a run</h2>
+        <form id="start-form">
+          <input name="task" placeholder="Task URL or ID" required>
+          <input name="repo" placeholder="Repository path (optional)">
+          <button type="submit">Start team</button>
+        </form>
+        <p id="start-notice" class="notice" role="status"></p>
+      </section>
+
+      <section id="summary" class="cards"></section>
+
+      <section id="questions-panel" class="panel" hidden>
+        <h2>Open questions <span id="questions-count" class="pill warn"></span></h2>
+        <p class="muted">Agents that stopped to ask you something. Answering re-runs the team.</p>
+        <div id="questions"></div>
+      </section>
+
+      <section class="layout">
+        <aside class="panel">
+          <h2>Runs</h2>
+          <div id="run-list">
+            <p class="muted">Loading…</p>
+          </div>
+        </aside>
+        <article id="detail">
+          <div class="panel muted">Select a run.</div>
+        </article>
+      </section>
+    </main>
+
+    <template id="detail-template">
+      <div class="panel">
+        <h2 data-field="title"></h2>
+        <p class="muted" data-field="meta"></p>
+        <p class="reason" data-field="reason" hidden></p>
+        <div class="graph" data-field="graph"></div>
+      </div>
+      <div class="panel">
+        <h2>Latest activity</h2>
+        <div data-field="events"></div>
+      </div>
+      <div class="panel question-panel" data-field="question-panel" hidden>
+        <h2 data-field="question-title"></h2>
+        <pre class="prose" data-field="question-detail"></pre>
+      </div>
+      <div class="panel">
+        <h2 data-field="reply-title">Reply to the team</h2>
+        <p class="muted" data-field="replay-warning"></p>
+        <form data-field="feedback-form">
+          <textarea name="feedback" rows="5" placeholder="Your answer to the team…"></textarea>
+          <input name="repo" placeholder="Repository path for the re-run">
+          <label class="check">
+            <input type="checkbox" name="refreshTask"> <span data-field="refresh-label">Re-read the task (extra agent call)</span>
+          </label>
+          <div class="actions">
+            <button type="submit">Record answer</button>
+            <button type="button" data-field="send">Answer and re-run team</button>
+            <button type="button" data-field="retry">Re-run without an answer</button>
+          </div>
+        </form>
+        <p class="notice" data-field="notice" role="status"></p>
+      </div>
+      <div class="panel">
+        <h2>Agent documents</h2>
+        <p
+          class="muted">Reports, prompts and notes written by each agent, including files left in the worktree.</p>
+        <div class="documents">
+          <div data-field="document-list"></div>
+          <div class="document-view">
+            <p class="muted" data-field="document-title">Select a document.</p>
+            <pre class="prose" data-field="document-content" hidden></pre>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Saved files</h2>
+        <p class="muted" data-field="files"></p>
+      </div>
+    </template>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

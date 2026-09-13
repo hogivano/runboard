@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno task test
+      - name: Compile
+        run: >
+          deno compile --allow-env --allow-net=127.0.0.1 --allow-read --allow-write --allow-run
+          --include public --target ${{ matrix.target }}
+          --output dist/runboard-${{ matrix.target }} src/main.ts
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/runboard-${{ matrix.target }}

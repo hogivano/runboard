@@ -1,0 +1,31 @@
+{
+  "private": true,
+  "tasks": {
+    "dev": "deno run --watch --allow-env --allow-net=127.0.0.1 --allow-read --allow-write --allow-run src/main.ts",
+    "start": "deno run --allow-env --allow-net=127.0.0.1 --allow-read --allow-write --allow-run src/main.ts",
+    "test": "deno test --allow-read --allow-write --allow-env --allow-run",
+    "check": "deno check src/main.ts && deno lint && deno fmt --check",
+    "fmt": "deno fmt",
+    "lint": "deno lint",
+    "compile": "deno compile --allow-env --allow-net=127.0.0.1 --allow-read --allow-write --allow-run --include public --output dist/runboard src/main.ts"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.14",
+    "@std/fs": "jsr:@std/fs@^1.0.19",
+    "@std/http": "jsr:@std/http@^1.0.21",
+    "@std/path": "jsr:@std/path@^1.1.2"
+  },
+  "fmt": {
+    "lineWidth": 110
+  },
+  "lint": {
+    "rules": {
+      "tags": [
+        "recommended"
+      ]
+    }
+  },
+  "exclude": [
+    "tests/fixtures"
+  ]
+}
