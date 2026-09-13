@@ -38,11 +38,17 @@ Requires [Deno](https://deno.com) 2.x.
 
 ```bash
 git clone https://github.com/hogivano/runboard.git && cd runboard
-RUNBOARD_RUNS_ROOT=tests/fixtures/runs deno task start   # try it on the sample runs
+deno task demo
 ```
 
-Open <http://127.0.0.1:4177>. Point `RUNBOARD_RUNS_ROOT` at your own runner's runs directory when you have
-one.
+Open <http://127.0.0.1:4177>. The demo runs on a temporary copy of the sample runs in `tests/fixtures/runs`,
+so you can answer questions and open documents without changing the checkout. It never starts a runner.
+
+To watch your own runs:
+
+```bash
+RUNBOARD_RUNS_ROOT=~/path/to/runs deno task start
+```
 
 To build a single self-contained binary:
 

@@ -16,8 +16,8 @@ Deno.test("listDocuments returns each stage's files tagged with the agent that w
   assertEquals(report.readable, true);
 
   assert(documents.some((doc) => doc.id === "run/state.json"));
-  // events.jsonl has no readable extension, so it is listed but not servable.
-  assertEquals(documents.find((doc) => doc.name === "events.jsonl")?.readable, false);
+  // The activity log is text an operator wants to read.
+  assertEquals(documents.find((doc) => doc.name === "events.jsonl")?.readable, true);
 });
 
 Deno.test("readDocument returns the content of an agent document", async () => {
@@ -28,14 +28,20 @@ Deno.test("readDocument returns the content of an agent document", async () => {
   assertEquals(JSON.parse(doc.content).status, "needs_input");
 });
 
+Deno.test("readDocument serves the JSONL activity log", async () => {
+  await using env = await withFixtures();
+  const doc = await readDocument(env.config, "run-question", "run/events.jsonl");
+  assert(doc.content.includes("analyst started intake"));
+});
+
 Deno.test("readDocument refuses to escape the run or serve binary-ish files", async () => {
   await using env = await withFixtures();
   const cases: [string, number][] = [
     ["workspace/../../../etc/passwd", 400],
     ["run/../../escape.md", 400],
     ["bogus/notes.md", 400],
-    ["run/events.jsonl", 400],
     ["run/missing.md", 404],
+    ["run/archive.zip", 400],
   ];
   for (const [documentId, status] of cases) {
     const error = await assertRejects(

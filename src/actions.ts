@@ -2,7 +2,7 @@
 import { join } from "@std/path";
 import type { Config } from "./config.ts";
 import type { RunState } from "./types.ts";
-import { badRequest, conflict, notFound } from "./errors.ts";
+import { badRequest, conflict, HttpError, notFound } from "./errors.ts";
 import { readRunState, runDirectory } from "./runs.ts";
 import { replayedStages } from "./questions.ts";
 
@@ -122,7 +122,13 @@ async function inputArgs(state: RunState, refresh: boolean): Promise<string[]> {
     }
   }
   if (state.input_source?.task_id) return [state.input_source.task_id];
-  if (state.brief_path) return ["--brief", state.brief_path];
+  // Passing a brief that is gone would start a run that fails at once while the UI
+  // reports it as sent, so a missing brief is an error, not a fallback.
+  if (state.brief_path) {
+    throw badRequest(
+      `The brief this run used is missing (${state.brief_path}) and the run has no task id to re-read`,
+    );
+  }
   throw badRequest("Run has no reusable task or brief to retry from");
 }
 
@@ -140,6 +146,8 @@ export async function retryRun(
   }
   const state = await readRunState(config, id);
   if (!state) throw notFound(`No run at ${id}`);
+  // Without a launcher nothing else about the re-run matters; say that first.
+  await assertLauncherRunnable(config.launcher);
   if (state.status === "running") {
     throw conflict("Run is still active; wait for it to finish or block before retrying");
   }
@@ -231,13 +239,27 @@ export async function replyToQuestion(
       delivered: live,
       delivery: live
         ? "Recorded. The running team picks this up when it builds the next stage prompt."
-        : "Recorded only. This run has already exited, so no agent will read it until you re-run the team with this answer.",
+        : config.launcher
+        ? "Recorded only. This run has already exited, so no agent will read it until you re-run the team with this answer."
+        : "Recorded only. This run has already exited and no launcher is configured, so no agent will read it. Re-run the task with your runner and pass this answer along.",
       replays: replayedStages(state),
       launch: null,
     };
   }
 
-  const launch = await retryRun(config, id, { repo: input.repo, feedback: answer });
+  let launch: LaunchResult;
+  try {
+    launch = await retryRun(config, id, { repo: input.repo, feedback: answer });
+  } catch (error) {
+    // The answer is already on disk; say so, or the user will submit it a second time.
+    if (error instanceof HttpError) {
+      throw new HttpError(
+        error.status,
+        `Your answer was recorded, but the re-run could not start: ${error.message}`,
+      );
+    }
+    throw error;
+  }
   return {
     recorded: true,
     answersPath,

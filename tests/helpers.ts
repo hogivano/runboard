@@ -11,6 +11,8 @@ export interface TestEnv extends AsyncDisposable {
   runsRoot: string;
   /** Git worktree used by `run-recorded`, holding one tracked and one untracked file. */
   workspace: string;
+  /** Brief recorded by `run-recorded`; exists until a test removes it. */
+  briefPath: string;
   /**
    * Arguments captured by the stub launcher, one entry per launch. Pass `expect` to
    * wait for that many launches instead of racing the detached child.
@@ -48,6 +50,10 @@ export async function withFixtures(overrides: Partial<Config> = {}): Promise<Tes
   const recordedState = join(runsRoot, "run-recorded/state.json");
   const recorded = JSON.parse(await Deno.readTextFile(recordedState));
   recorded.workspace = workspace;
+  // A real brief inside the sandbox, so a re-run test never depends on a global /tmp file.
+  const briefPath = join(base, "brief.md");
+  await Deno.writeTextFile(briefPath, "# Brief\n\nExport retries.\n");
+  recorded.brief_path = briefPath;
   await Deno.writeTextFile(recordedState, JSON.stringify(recorded, null, 2));
 
   const launchLog = join(base, "launched.jsonl");
@@ -61,6 +67,7 @@ export async function withFixtures(overrides: Partial<Config> = {}): Promise<Tes
   return {
     runsRoot,
     workspace,
+    briefPath,
     config: {
       runsRoot,
       launcher,

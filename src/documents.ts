@@ -14,7 +14,17 @@ import { readRunState, runDirectory } from "./runs.ts";
 import type { RunState } from "./types.ts";
 
 /** Readable text only; anything else is listed but never served as a document. */
-const READABLE = new Set([".md", ".txt", ".json", ".log", ".diff", ".patch"]);
+const READABLE = new Set([
+  ".md",
+  ".txt",
+  ".json",
+  ".jsonl",
+  ".yaml",
+  ".yml",
+  ".log",
+  ".diff",
+  ".patch",
+]);
 const MAX_DOCUMENT_BYTES = 512 * 1024;
 
 export type DocumentSource = "stage" | "run" | "workspace";
@@ -204,9 +214,14 @@ export async function readDocument(
   id: string,
   documentId: string,
 ): Promise<DocumentContent> {
+  // Refuse unreadable types before touching the filesystem, so the answer does not
+  // depend on whether such a file happens to exist.
+  if (!READABLE.has(extensionOf(documentId))) {
+    throw badRequest(`${basename(documentId)} is not a readable text document`);
+  }
   const state = await readRunState(config, id);
   const { absolute, source, relative } = await resolveDocument(config, id, documentId, state);
-
+  // A symlink can end in a different extension than the name that was requested.
   if (!READABLE.has(extensionOf(absolute))) {
     throw badRequest(`${basename(absolute)} is not a readable text document`);
   }

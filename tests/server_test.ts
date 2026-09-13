@@ -172,7 +172,7 @@ Deno.test("POST retry reuses the repository and brief the run recorded", async (
 
   assertEquals(await env.launchedArgs({ expect: 1 }), [[
     "--brief",
-    "/tmp/brief.md",
+    env.briefPath,
     "--repo",
     "/tmp/recorded-repo",
   ]]);
@@ -273,6 +273,42 @@ Deno.test("run detail carries a derived stage graph", async () => {
     diffStat: "no working-tree diff yet",
     artifacts: [],
   }]);
+});
+
+Deno.test("a re-run never passes a brief that no longer exists", async () => {
+  await using env = await withFixtures();
+  const handler = createHandler(env.config);
+  // run-recorded has no task id to fall back to once its brief is gone.
+  await Deno.remove(env.briefPath);
+  const response = await handler(post("/api/runs/run-recorded/retry", {}));
+  assertEquals(response.status, 400);
+  assert((await response.json()).error.includes("brief this run used is missing"));
+  assertEquals(await env.launchedArgs(), [], "a doomed run must not be started");
+});
+
+Deno.test("when a re-run cannot start, the error says the answer was still recorded", async () => {
+  await using env = await withFixtures();
+  await Deno.remove(env.briefPath);
+  const response = await createHandler(env.config)(
+    post("/api/runs/run-recorded/reply", { answer: "ship it", relaunch: true }),
+  );
+  assertEquals(response.status, 400);
+  assert(
+    (await response.json()).error.startsWith("Your answer was recorded, but the re-run could not start"),
+  );
+  const answers = await Deno.readTextFile(join(env.runsRoot, "run-recorded/answers.jsonl"));
+  assert(answers.includes("ship it"));
+  assertEquals(await env.launchedArgs(), []);
+});
+
+Deno.test("without a launcher, a recorded answer does not promise a re-run", async () => {
+  await using env = await withFixtures({ launcher: null });
+  const response = await createHandler(env.config)(
+    post("/api/runs/run-question/reply", { answer: "retry twice" }),
+  );
+  const result = await response.json();
+  assertEquals(result.delivered, false);
+  assert(result.delivery.includes("no launcher is configured"));
 });
 
 Deno.test("unknown API routes and bad bodies answer with JSON errors", async () => {

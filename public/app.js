@@ -1,5 +1,7 @@
 /** Dashboard UI. Polls the API, keeps one detail pane mounted and never clobbers user input. */
 
+import { detailControls, documentsKey } from "./controls.js";
+
 const STATUS_LABELS = {
   running: "Running",
   needs_input: "Needs input",
@@ -169,6 +171,7 @@ function eventList(run) {
 /** Lists a run's agent documents; the body is fetched only when one is opened. */
 async function loadDocuments(id) {
   const list = shell.documentList;
+  const openId = list.querySelector('.document[aria-current="true"]')?.dataset.doc;
   let documents;
   try {
     documents = await api(runPath(id, "/documents"));
@@ -187,7 +190,7 @@ async function loadDocuments(id) {
         : [doc.role, doc.stage].filter(Boolean).join(" · ") || "run";
       const size = `${Math.max(1, Math.round(doc.size / 1024))} KB`;
       return `<button type="button" class="document" data-doc="${esc(doc.id)}"
-        aria-current="false" ${doc.readable ? "" : "disabled"}>
+        aria-current="${doc.id === openId}" ${doc.readable ? "" : "disabled"}>
         ${esc(doc.name)}<small>${esc(where)} · ${size}</small>
       </button>`;
     })
@@ -249,17 +252,14 @@ function mountShell(id) {
   next.repo = next.form.elements.repo;
   next.refresh = next.form.elements.refreshTask;
   field("refresh-label").textContent = `Re-read the ${settings.sourceLabel} task (extra agent call)`;
-  if (!settings.canLaunch) {
-    next.send.hidden = true;
-    next.retry.hidden = true;
-    next.refresh.closest("label").hidden = true;
-    next.repo.hidden = true;
-  }
+
   next.textarea.value = drafts.get(id) ?? "";
   next.textarea.addEventListener("input", () => drafts.set(id, next.textarea.value));
 
   /** Records the answer, and optionally re-runs the team carrying it. */
   const reply = async (relaunch) => {
+    // The server refuses too; this keeps a hidden button from doing anything if clicked.
+    if (relaunch && !settings.canLaunch) return;
     const button = relaunch ? next.send : next.form.querySelector('button[type="submit"]');
     button.disabled = true;
     try {
@@ -273,7 +273,7 @@ function mountShell(id) {
       next.textarea.value = "";
       // `delivered` distinguishes an answer an agent will read from one only on disk.
       notify(next.notice, result.delivery, result.delivered ? "ok" : "warn");
-      await loadSettings().then(refresh);
+      await refresh();
     } catch (error) {
       notify(next.notice, error.message, "error");
     } finally {
@@ -312,7 +312,6 @@ function mountShell(id) {
   const detail = el("detail");
   detail.replaceChildren(fragment);
   shell = next;
-  loadDocuments(id);
 }
 
 function renderDetail(run) {
@@ -336,11 +335,23 @@ function renderDetail(run) {
   shell.repo.placeholder = run.repository
     ? `Defaults to ${run.repository}`
     : "Repository path (required — this run did not record one)";
-  shell.retry.disabled = !run.retryable;
-  shell.retry.title = run.retryBlockedReason ?? "";
-  shell.form.hidden = run.kind === "import";
 
   const question = openQuestions.find((item) => item.runId === run.id);
+  const controls = detailControls(settings, run, question);
+  shell.replyPanel.hidden = !controls.showReply;
+  for (const node of [shell.send, shell.retry, shell.repo, shell.refresh.closest("label")]) {
+    node.hidden = !controls.showLaunch;
+  }
+  shell.send.disabled = !controls.showLaunch;
+  shell.retry.disabled = !controls.canRetry;
+  shell.retry.title = run.retryBlockedReason ?? "";
+  shell.replayWarning.textContent = controls.warning;
+
+  const key = documentsKey(run);
+  if (shell.documentsKey !== key) {
+    shell.documentsKey = key;
+    loadDocuments(run.id);
+  }
   shell.questionPanel.hidden = !question;
   // When an agent is waiting, answering is the job: put the question and the reply box
   // above the stage graph so it does not sit a screen and a half down the page.
@@ -356,17 +367,8 @@ function renderDetail(run) {
     shell.questionDetail.textContent = question.reason || readable(question.detail) ||
       "No detail recorded.";
     shell.replyTitle.textContent = "Answer the team";
-    // The run has exited, so say plainly what answering costs before the click.
-    shell.replayWarning.textContent = question.replays.length
-      ? `This run has stopped. Answering re-runs the team from the start, replaying: ${
-        question.replays.join(", ")
-      }.`
-      : "This run has stopped. Answering starts a fresh run carrying your answer.";
   } else {
     shell.replyTitle.textContent = "Reply to the team";
-    shell.replayWarning.textContent = run.status === "running"
-      ? "This run is live; a recorded answer is picked up when it builds the next stage prompt."
-      : "This run is not waiting on a question. A recorded answer is only read if you re-run the team.";
   }
 }
 
@@ -451,4 +453,9 @@ el("refresh").addEventListener("click", refresh);
 setInterval(() => {
   if (!document.hidden) refresh();
 }, POLL_MS);
-refresh();
+// Polling pauses while the tab is hidden; catch up as soon as it is shown again.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) refresh();
+});
+// Settings decide what the page offers, so they load before the first render.
+loadSettings().then(refresh);
